@@ -1,0 +1,10 @@
+service: "service:svc"
+include:
+  - "ML/models/melody_transformer_model_epoch_1.pth"
+  - "ML/models/tokenizer.pkl"
+  - "ML/transformer.py"
+  - "ML/inference.py"
+python:
+  requirements_txt: requirements.txt
+  pip_args: >
+    --extra-index-url https://download.pytorch.org/whl/cu121

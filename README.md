@@ -8,12 +8,13 @@ This project implements a melody generation pipeline using transformer models. I
 
 ## Features
 
-- **Data and Model Versioning**: Utilizes DVC to track datasets and models.
-- **Transformer Model**: Custom transformer architecture tailored for sequence-to-sequence melody generation.
-- **Inference Pipeline**: Scripts to generate melodies and save them as MIDI files.
+- **Data and Model Versioning**: Utilizes DVC to track datasets and models
+- **Transformer Model**: Custom transformer architecture tailored for sequence-to-sequence melody generation
+- **Inference Pipeline**: Scripts to generate melodies and save them as MIDI files
 
 ## Upcoming Features
 
-- BentoML inference server for serving models in production.
-- Containerization using Docker for consistent deployments.
-- GitHub Action workflows for seamless CI/CD integration with AWS and Docker.
+- BentoML service for serving models in production
+- Prometheus for monitoring and alerting
+- Containerization using Docker for consistent deployments
+- GitHub Action workflows for seamless CI/CD integration with AWS and Docker

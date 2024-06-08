@@ -1,12 +1,16 @@
+import sys
+import os
+
+# Add the ML directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import torch
 import torch.nn as nn
-from transformer import MelodyTransformer, generate_square_subsequent_mask, create_padding_mask
+from ML.transformer import MelodyTransformer, generate_square_subsequent_mask, create_padding_mask
 import pickle
 import mido
 
 def load_model_and_tokenizer(model_path, tokenizer_path, num_tokens, dim_model, num_heads, num_encoder_layers, num_decoder_layers, dropout=0.1):
-    # Load the model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = MelodyTransformer(
         num_tokens=num_tokens, 
         dim_model=dim_model, 
@@ -14,11 +18,10 @@ def load_model_and_tokenizer(model_path, tokenizer_path, num_tokens, dim_model, 
         num_encoder_layers=num_encoder_layers, 
         num_decoder_layers=num_decoder_layers, 
         dropout=dropout
-    ).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    ).to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     model.eval()
 
-    # Load the tokenizer
     with open(tokenizer_path, 'rb') as f:
         tokenizer = pickle.load(f)
 
@@ -42,7 +45,7 @@ def generate_melody(model, tokenizer, start_sequence, max_length=100):
         next_token = output[:, -1, :].argmax(dim=-1).unsqueeze(0)
         generated_sequence = torch.cat((generated_sequence, next_token), dim=1)
 
-        if next_token.item() == 0:  # Stop if the generated token is padding
+        if next_token.item() == 0:
             break
 
     generated_melody = tokenizer.inverse_transform(generated_sequence.squeeze().cpu().numpy())
@@ -50,6 +53,7 @@ def generate_melody(model, tokenizer, start_sequence, max_length=100):
     return generated_melody
 
 def save_melody_to_midi(melody, output_path):
+    import mido
     mid = mido.MidiFile()
     track = mido.MidiTrack()
     mid.tracks.append(track)
@@ -92,3 +96,6 @@ if __name__ == "__main__":
     )
 
     save_melody_to_midi(generated_melody, args.output_path)
+
+# Example Usage
+#python3 ML/inference.py --model_path ML/models/melody_transformer_model_epoch_1.pth --tokenizer_path ML/models/tokenizer.pkl --start_sequence "60,0" "62,0" "64,0" --max_length 100 --output_path generated_melody.mid
