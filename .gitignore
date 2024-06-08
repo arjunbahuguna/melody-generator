@@ -163,3 +163,6 @@ cython_debug/
 
 data/
 models/
+.dvc
+.dvcignore
+generated_melody.mid
