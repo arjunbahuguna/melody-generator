@@ -4,18 +4,26 @@ from preprocessor import MelodyPreprocessor
 from transformer import MelodyTransformer, generate_square_subsequent_mask, create_padding_mask
 import torch.nn as nn
 from torch.cuda.amp import autocast, GradScaler
+import os
+import pickle
 
-def train_model(midi_folder_path, batch_size=1, num_epochs=10, learning_rate=0.001, accumulation_steps=8):
+def train_model(midi_folder_path, batch_size=4, num_epochs=10, learning_rate=0.0001, accumulation_steps=8, model_dir="models"):
     # Initialize the preprocessor
     preprocessor = MelodyPreprocessor(midi_folder_path, batch_size=batch_size)
     dataloader = preprocessor.create_training_dataset()
     
+    # Determine the total number of samples and steps per epoch
+    total_samples = len(dataloader.dataset)
+    num_steps_per_epoch = len(dataloader)
+    print(f"Total number of samples: {total_samples}")
+    print(f"Number of steps per epoch: {num_steps_per_epoch}")
+
     # Hyperparameters
     num_tokens = preprocessor.number_of_tokens_with_padding
-    dim_model = 512
-    num_heads = 8
-    num_encoder_layers = 6
-    num_decoder_layers = 6
+    dim_model = 256  # Simplified model
+    num_heads = 4  # Simplified model
+    num_encoder_layers = 4  # Simplified model
+    num_decoder_layers = 4  # Simplified model
     dropout = 0.1
     
     # Initialize the model, loss function, and optimizer
@@ -45,7 +53,7 @@ def train_model(midi_folder_path, batch_size=1, num_epochs=10, learning_rate=0.0
 
             # Pad sequences to the same length
             src, tgt_input, tgt_output = src[:, :tgt_input.shape[1]], tgt_input, tgt_output
-            
+
             # Ensure src and tgt_input have the same batch size
             assert src.shape[0] == tgt_input.shape[0], "Batch sizes of src and tgt_input do not match"
             
@@ -72,24 +80,35 @@ def train_model(midi_folder_path, batch_size=1, num_epochs=10, learning_rate=0.0
             
             epoch_loss += loss.item()
             
-            if i % 10 == 0:
-                print(f'Batch {i+1}, Loss: {loss.item()}')
-
+            # Print loss at every step
+            print(f'Epoch {epoch+1}, Step {i+1}, Loss: {loss.item()}')
+        
         print(f'Epoch {epoch+1}, Average Loss: {epoch_loss / len(dataloader)}')
-    
-    # Save the trained model
-    torch.save(model.state_dict(), "melody_transformer_model.pth")
-    print("Model saved as 'melody_transformer_model.pth'")
+
+        # Ensure model directory exists
+        os.makedirs(model_dir, exist_ok=True)
+
+        # Save the trained model after each epoch
+        model_path = os.path.join(model_dir, f"melody_transformer_model_epoch_{epoch+1}.pth")
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved as '{model_path}'")
+
+    # Save the tokenizer
+    tokenizer_path = os.path.join(model_dir, "tokenizer.pkl")
+    with open(tokenizer_path, 'wb') as f:
+        pickle.dump(preprocessor.tokenizer, f)
+    print(f"Tokenizer saved as '{tokenizer_path}'")
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Train a Melody Transformer model.')
     parser.add_argument('--midi_folder_path', type=str, required=True, help='Path to the folder containing MIDI files.')
-    parser.add_argument('--batch_size', type=int, default=1, help='Batch size for training.')  # Reduced default batch size
+    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training.')
     parser.add_argument('--num_epochs', type=int, default=10, help='Number of epochs for training.')
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer.')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer.')
     parser.add_argument('--accumulation_steps', type=int, default=8, help='Number of gradient accumulation steps.')
+    parser.add_argument('--model_dir', type=str, default="models", help='Directory to save the trained model.')
     
     args = parser.parse_args()
     
@@ -98,5 +117,6 @@ if __name__ == "__main__":
         batch_size=args.batch_size, 
         num_epochs=args.num_epochs, 
         learning_rate=args.learning_rate,
-        accumulation_steps=args.accumulation_steps
+        accumulation_steps=args.accumulation_steps,
+        model_dir=args.model_dir
     )

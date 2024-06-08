@@ -14,19 +14,21 @@ class MelodyPreprocessor:
     and prepares PyTorch datasets for training sequence-to-sequence models.
     """
 
-    def __init__(self, midi_folder_path, batch_size=32):
+    def __init__(self, midi_folder_path, batch_size=32, max_seq_len=100):
         """
         Initializes the melody preprocessor.
 
         Parameters:
             midi_folder_path (str): Path to the folder containing MIDI files.
             batch_size (int): Size of each batch in the dataset.
+            max_seq_len (int): Maximum sequence length.
         """
         self.midi_folder_path = midi_folder_path
         self.batch_size = batch_size
         self.tokenizer = LabelEncoder()
         self.max_melody_length = None
         self.number_of_tokens = None
+        self.max_seq_len = max_seq_len
 
     @property
     def number_of_tokens_with_padding(self):
@@ -57,9 +59,6 @@ class MelodyPreprocessor:
         # Set the maximum melody length and number of tokens
         self._set_max_melody_length(tokenized_melodies)
         self._set_number_of_tokens()
-
-        # Debug: print the max melody length
-        print(f"Max melody length: {self.max_melody_length}")
 
         # Create input and target sequence pairs
         input_sequences, target_sequences = self._create_sequence_pairs(tokenized_melodies)
@@ -126,7 +125,7 @@ class MelodyPreprocessor:
         Parameters:
             melodies (list): A list of tokenized melodies.
         """
-        self.max_melody_length = max([len(melody) for melody in melodies])
+        self.max_melody_length = min(self.max_seq_len, max([len(melody) for melody in melodies]))
 
     def _set_number_of_tokens(self):
         """
@@ -146,19 +145,13 @@ class MelodyPreprocessor:
         """
         input_sequences, target_sequences = [], []
         for melody in melodies:
-            for i in range(1, len(melody)):
+            for i in range(1, min(len(melody), self.max_seq_len)):
                 input_seq = melody[:i]
                 target_seq = melody[1:i + 1]  # Shifted by one time step
                 padded_input_seq = self._pad_sequence(input_seq)
                 padded_target_seq = self._pad_sequence(target_seq)
                 input_sequences.append(padded_input_seq)
                 target_sequences.append(padded_target_seq)
-
-                # Debug: print sequences and their lengths
-                print(f"Input sequence: {input_seq}, length: {len(input_seq)}")
-                print(f"Padded input sequence: {padded_input_seq}, length: {len(padded_input_seq)}")
-                print(f"Target sequence: {target_seq}, length: {len(target_seq)}")
-                print(f"Padded target sequence: {padded_target_seq}, length: {len(padded_target_seq)}")
 
         return np.array(input_sequences), np.array(target_sequences)
 
@@ -210,7 +203,7 @@ class MelodyDataset(Dataset):
 
 if __name__ == "__main__":
     # Usage example
-    preprocessor = MelodyPreprocessor("/home/arjbah/Projects/melody-generator/data", batch_size=1)
+    preprocessor = MelodyPreprocessor("/home/melody-generator/data", batch_size=1, max_seq_len=100)
     training_dataloader = preprocessor.create_training_dataset()
     
     # Print the first batch to verify
