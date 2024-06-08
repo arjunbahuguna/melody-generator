@@ -12,7 +12,6 @@ def train_model(midi_folder_path, batch_size=1, num_epochs=10, learning_rate=0.0
     
     # Hyperparameters
     num_tokens = preprocessor.number_of_tokens_with_padding
-    print(f"Number of tokens including padding: {num_tokens}")  # Debugging
     dim_model = 512
     num_heads = 8
     num_encoder_layers = 6
@@ -46,11 +45,7 @@ def train_model(midi_folder_path, batch_size=1, num_epochs=10, learning_rate=0.0
 
             # Pad sequences to the same length
             src, tgt_input, tgt_output = src[:, :tgt_input.shape[1]], tgt_input, tgt_output
-
-            # Debugging: print the shapes of src and tgt_input
-            if i % 10 == 0:
-                print(f"src shape: {src.shape}, tgt_input shape: {tgt_input.shape}")
-
+            
             # Ensure src and tgt_input have the same batch size
             assert src.shape[0] == tgt_input.shape[0], "Batch sizes of src and tgt_input do not match"
             
